@@ -57,15 +57,24 @@ void TestMatching() {
     SearchServer server;
     server.SetStopWords("cat"s);
     server.AddDocument(42, "cat in the city"s, DocumentStatus::ACTUAL, {1, 2, 3});
-    auto [test_1, status_1] = server.MatchDocument("in the"s, 42);
-    auto [test_2, status_2] = server.MatchDocument("in -the"s, 42);
-    auto [test_3, status_3] = server.MatchDocument("in the cat"s, 42);
-    vector<string> result_1 = {"in"s, "the"s};
-    vector<string> result_2 = {};
-    vector<string> result_3 = {"in"s, "the"s};
-    ASSERT_EQUAL(test_1, result_1);
-    ASSERT_EQUAL(test_2, result_2);
-    ASSERT_EQUAL(test_3, result_3);
+    {
+    auto [test, status] = server.MatchDocument("in the"s, 42);
+    vector<string> result = {"in"s, "the"s};
+    ASSERT_EQUAL(test, result);
+    ASSERT(status == DocumentStatus::ACTUAL);
+    }
+    {
+    auto [test, status] = server.MatchDocument("in -the"s, 42);
+    vector<string> result = {};
+    ASSERT_EQUAL(test, result);
+    ASSERT(status == DocumentStatus::ACTUAL);
+    }
+    {
+    auto [test, status] = server.MatchDocument("in the cat"s, 42);
+    vector<string> result = {"in"s, "the"s};
+    ASSERT_EQUAL(test, result);
+    ASSERT(status == DocumentStatus::ACTUAL);
+    }
 }
 
 // Тест проверяет, что возвращаемые при поиске документов результаты отсортированы в порядке убывания релевантности
@@ -144,3 +153,5 @@ void TestSearchServer() {
     TestSearchDocumentsWithStatus();
     TestRelevanceCalculation();
 }
+
+// --------- Окончание модульных тестов поисковой системы -----------
