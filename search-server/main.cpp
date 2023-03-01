@@ -58,22 +58,22 @@ void TestMatching() {
     server.SetStopWords("cat"s);
     server.AddDocument(42, "cat in the city"s, DocumentStatus::ACTUAL, {1, 2, 3});
     {
-    auto [test, status] = server.MatchDocument("in the"s, 42);
-    vector<string> result = {"in"s, "the"s};
-    ASSERT_EQUAL(test, result);
-    ASSERT(status == DocumentStatus::ACTUAL);
+        auto [test, status] = server.MatchDocument("in the"s, 42);
+        vector<string> result = {"in"s, "the"s};
+        ASSERT_EQUAL(test, result);
+        ASSERT(status == DocumentStatus::ACTUAL);
     }
     {
-    auto [test, status] = server.MatchDocument("in -the"s, 42);
-    vector<string> result = {};
-    ASSERT_EQUAL(test, result);
-    ASSERT(status == DocumentStatus::ACTUAL);
+        auto [test, status] = server.MatchDocument("in -the"s, 42);
+        vector<string> result = {};
+        ASSERT_EQUAL(test, result);
+        ASSERT(status == DocumentStatus::ACTUAL);
     }
     {
-    auto [test, status] = server.MatchDocument("in the cat"s, 42);
-    vector<string> result = {"in"s, "the"s};
-    ASSERT_EQUAL(test, result);
-    ASSERT(status == DocumentStatus::ACTUAL);
+        auto [test, status] = server.MatchDocument("in the cat"s, 42);
+        vector<string> result = {"in"s, "the"s};
+        ASSERT_EQUAL(test, result);
+        ASSERT(status == DocumentStatus::ACTUAL);
     }
 }
 
