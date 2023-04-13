@@ -2,6 +2,7 @@
 
 #include "document.h"
 #include "string_processing.h"
+#include "log_duration.h"
 
 #include <string>
 #include <vector>
@@ -26,6 +27,8 @@ public:
     void AddDocument(int document_id, const std::string &document, DocumentStatus status,
                      const std::vector<int> &ratings);
 
+    void RemoveDocument(int document_id);
+
     template <typename DocumentPredicate>
     std::vector<Document> FindTopDocuments(const std::string &raw_query,
                                            DocumentPredicate document_predicate) const;
@@ -36,8 +39,17 @@ public:
 
     int GetDocumentCount() const;
 
-    int GetDocumentId(int index) const;
+    typename std::vector<int>::const_iterator begin() const;
 
+    typename std::vector<int>::const_iterator end() const;
+
+    auto at(int index) const;
+
+    const std::map<std::string, double> &GetWordFrequencies(int document_id) const;
+
+    /*
+        int GetDocumentId(int index) const;
+    */
     std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string &raw_query,
                                                                        int document_id) const;
 
@@ -55,6 +67,8 @@ private:
     std::map<int, DocumentData> documents_;
 
     std::vector<int> document_ids_;
+
+    std::map<int, std::map<std::string, double>> id_to_word_freqs_;
 
     bool IsStopWord(const std::string &word) const
     {

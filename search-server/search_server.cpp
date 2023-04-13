@@ -21,9 +21,49 @@ void SearchServer::AddDocument(int document_id, const string &document, Document
     for (const string &word : words)
     {
         word_to_document_freqs_[word][document_id] += inv_word_count;
+        id_to_word_freqs_[document_id][word] += inv_word_count;
     }
     documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
     document_ids_.push_back(document_id);
+}
+
+void SearchServer::RemoveDocument(int document_id)
+{
+    if ((document_id < 0) || (documents_.count(document_id) < 1))
+    {
+        throw invalid_argument("Invalid document_id"s);
+    }
+    for (auto it = document_ids_.begin(); it != document_ids_.end();)
+    {
+        if (*it == document_id)
+            it = document_ids_.erase(it);
+        else
+            ++it;
+    }
+    documents_.erase(document_id);
+    // word_to_document_freqs_
+    for (auto [word, freq] : GetWordFrequencies(document_id))
+    {
+        for (auto it = word_to_document_freqs_.at(word).begin(); it != word_to_document_freqs_.at(word).end();)
+        {
+            if (it->first == document_id)
+            {
+                word_to_document_freqs_.at(word).erase(it++);
+                break;
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+    for (auto it = id_to_word_freqs_.begin(); it != id_to_word_freqs_.end();)
+    {
+        if (it->first == document_id)
+            it = id_to_word_freqs_.erase(it);
+        else
+            ++it;
+    }
 }
 
 vector<Document> SearchServer::FindTopDocuments(const string &raw_query, DocumentStatus status) const
@@ -42,10 +82,35 @@ int SearchServer::GetDocumentCount() const
 {
     return documents_.size();
 }
-
+/*
 int SearchServer::GetDocumentId(int index) const
 {
     return document_ids_.at(index);
+}
+*/
+typename vector<int>::const_iterator SearchServer::begin() const
+{
+    return document_ids_.begin();
+}
+
+typename vector<int>::const_iterator SearchServer::end() const
+{
+    return document_ids_.end();
+}
+
+auto SearchServer::at(int index) const
+{
+    return document_ids_.at(index);
+}
+
+const map<string, double> &SearchServer::GetWordFrequencies(int document_id) const
+{
+    if (id_to_word_freqs_.empty())
+    {
+        static const map<string, double> empty_map;
+        return empty_map;
+    }
+    return id_to_word_freqs_.at(document_id);
 }
 
 tuple<vector<string>, DocumentStatus> SearchServer::MatchDocument(const string &raw_query,
@@ -107,6 +172,7 @@ void FindTopDocuments(const SearchServer &search_server, const string &raw_query
     {
         cout << "Error is seaching: "s << e.what() << endl;
     }
+    LOG_DURATION_STREAM("Find top documents"s, cerr);
 }
 
 void MatchDocuments(const SearchServer &search_server, const string &query)
@@ -117,7 +183,9 @@ void MatchDocuments(const SearchServer &search_server, const string &query)
         const int document_count = search_server.GetDocumentCount();
         for (int index = 0; index < document_count; ++index)
         {
-            const int document_id = search_server.GetDocumentId(index);
+            // const int document_id = search_server.GetDocumentId(index);
+            const int document_id = search_server.at(index);
+
             const auto [words, status] = search_server.MatchDocument(query, document_id);
             PrintMatchDocumentResult(document_id, words, status);
         }
@@ -126,4 +194,5 @@ void MatchDocuments(const SearchServer &search_server, const string &query)
     {
         cout << "Error in matchig request "s << query << ": "s << e.what() << endl;
     }
+    LogDuration guard("Match document", cerr);
 }
