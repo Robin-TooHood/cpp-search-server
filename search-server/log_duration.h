@@ -26,7 +26,7 @@ public:
 
         const auto end_time = Clock::now();
         const auto dur = end_time - start_time_;
-        stream_ << /*id_ <<*/ "Operation time: "s << duration_cast<milliseconds>(dur).count() << " ms"s << std::endl;
+        stream_ << "Operation time: "s << duration_cast<milliseconds>(dur).count() << " ms"s << std::endl;
     }
 
 private:
