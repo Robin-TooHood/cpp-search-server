@@ -39,7 +39,7 @@ Deployment example:
 
 ```
 
-* At first run, a ".vscode" folder with "tasks.json" file will be automatically created and you need to change the line in the "args" section from ["${file}",] to ["${fileDirname}/*.cpp",] (so VS Code merge all files in a folder into one program when compiled)
+* At first run, a ".vscode" folder with "tasks.json" file will be automatically created and you need to change the line in the "args" section from `"${file}",` to `"${fileDirname}/*.cpp",` (so VS Code merge all files in a folder into one program when compiled)
 * Run it again
 * If you used example code above output should look like this:
 
