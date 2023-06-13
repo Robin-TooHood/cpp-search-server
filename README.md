@@ -22,26 +22,43 @@ Deployment example:
 * Run main.cpp file with g++ build (you can add the following code in main function to test deduplicating for example):
 
     SearchServer search_server("and with"s);
+
     AddDocument(search_server, 1, "funny pet and nasty rat"s, DocumentStatus::ACTUAL, {7, 2, 7});
+
     AddDocument(search_server, 2, "funny pet with curly hair"s, DocumentStatus::ACTUAL, {1, 2});
+
     AddDocument(search_server, 3, "funny pet with curly hair"s, DocumentStatus::ACTUAL, {1, 2});
+
     AddDocument(search_server, 4, "funny pet and curly hair"s, DocumentStatus::ACTUAL, {1, 2});
+
     AddDocument(search_server, 5, "funny funny pet and nasty nasty rat"s, DocumentStatus::ACTUAL, {1, 2});
+
     AddDocument(search_server, 6, "funny pet and not very nasty rat"s, DocumentStatus::ACTUAL, {1, 2});
+
     AddDocument(search_server, 7, "very nasty rat and not very funny pet"s, DocumentStatus::ACTUAL, {1, 2});
+
     AddDocument(search_server, 8, "pet with rat and rat and rat"s, DocumentStatus::ACTUAL, {1, 2});
+
     AddDocument(search_server, 9, "nasty rat with curly hair"s, DocumentStatus::ACTUAL, {1, 2});
+
     cout << "Before duplicates removed: "s << search_server.GetDocumentCount() << endl;
+
     RemoveDuplicates(search_server);
+
     cout << "After duplicates removed: "s << search_server.GetDocumentCount() << endl;
 
-* At first run, a ".vscode" folder with "tasks.json" file will be automatically created and you need to change the line in the "args" section from *** "${file}", *** to *** "${fileDirname}/*.cpp", *** (so VS Code merge all files in a folder into one program when compiled)
+* At first run, a ".vscode" folder with "tasks.json" file will be automatically created and you need to change the line in the "args" section from ***"${file}",*** to ***"${fileDirname}/*.cpp",** (so VS Code merge all files in a folder into one program when compiled)
 * Run it again
 * If you used example code above output should look like this:
 
     Before duplicates removed: 9
+
     Found duplicate document id 3
+
     Found duplicate document id 4
+
     Found duplicate document id 5
+
     Found duplicate document id 7
+    
     After duplicates removed: 5
