@@ -18,10 +18,13 @@
 #include <execution>
 #include <functional>
 #include <deque>
+#include <type_traits>
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
 
 const int BUCKETS_COUNT = 100;
+
+const double EPSILON = 1e-6;
 
 class SearchServer
 {
@@ -68,14 +71,13 @@ public:
 
     std::map<std::string_view, double> GetWordFrequencies(int document_id) const;
 
-    std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(std::string_view raw_query,
-                                                                            int document_id) const;
+    using MatchTuple = std::tuple<std::vector<std::string_view>, DocumentStatus>;
 
-    std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(const std::execution::sequenced_policy &, std::string_view raw_query,
-                                                                            int document_id) const;
+    MatchTuple MatchDocument(std::string_view raw_query, int document_id) const;
 
-    std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(const std::execution::parallel_policy &, std::string_view raw_query,
-                                                                            int document_id) const;
+    MatchTuple MatchDocument(const std::execution::sequenced_policy &, std::string_view raw_query, int document_id) const;
+
+    MatchTuple MatchDocument(const std::execution::parallel_policy &, std::string_view raw_query, int document_id) const;
 
 private:
     struct DocumentData
@@ -119,7 +121,7 @@ private:
         std::vector<std::string_view> minus_words;
     };
 
-    Query ParseQuery(std::string_view text) const;
+    Query ParseQuery(std::string_view text, bool sort_request) const;
 
     double ComputeWordInverseDocumentFreq(std::string_view word) const;
 
@@ -150,14 +152,30 @@ template <typename ExecutionPolicy, typename DocumentPredicate>
 std::vector<Document> SearchServer::FindTopDocuments(const ExecutionPolicy &policy, std::string_view raw_query,
                                                      DocumentPredicate document_predicate) const
 {
-    auto query = ParseQuery(raw_query);
+    bool sort_request = true;
+    if (std::is_same_v<ExecutionPolicy, std::execution::parallel_policy>)
+    {
+        sort_request = false;
+    }
+    auto query = ParseQuery(raw_query, sort_request);
+
+    if (!sort_request)
+    {
+        sort(query.minus_words.begin(), query.minus_words.end());
+        auto last_unique = unique(query.minus_words.begin(), query.minus_words.end());
+        query.minus_words.erase(last_unique, query.minus_words.end());
+
+        sort(query.plus_words.begin(), query.plus_words.end());
+        last_unique = unique(query.plus_words.begin(), query.plus_words.end());
+        query.plus_words.erase(last_unique, query.plus_words.end());
+    }
 
     auto matched_documents = FindAllDocuments(policy, query, document_predicate);
 
     std::sort(policy, matched_documents.begin(), matched_documents.end(),
               [](const Document &lhs, const Document &rhs)
               {
-                  return lhs.relevance > rhs.relevance || (std::abs(lhs.relevance - rhs.relevance) < 1e-6 && lhs.rating > rhs.rating);
+                  return lhs.relevance > rhs.relevance || (std::abs(lhs.relevance - rhs.relevance) < EPSILON && lhs.rating > rhs.rating);
               });
     if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT)
     {
@@ -262,20 +280,20 @@ std::vector<Document> SearchServer::FindAllDocuments(const std::execution::paral
                       }
                   });
 
-    auto document_to_relevance = pre_document_to_relevance.BuildOrdinaryMap();
-
     std::for_each(std::execution::par,
                   query.minus_words.begin(),
                   query.minus_words.end(),
-                  [this, &document_to_relevance](const std::string_view &word)
+                  [this, &pre_document_to_relevance](const std::string_view &word)
                   {
                       if (word_to_document_freqs_.count(word) == 0)
                           return;
                       for (const auto [document_id, _] : word_to_document_freqs_.at(word))
                       {
-                          document_to_relevance.erase(document_id);
+                          pre_document_to_relevance.erase(document_id);
                       }
                   });
+
+    auto document_to_relevance = pre_document_to_relevance.BuildOrdinaryMap();
 
     std::vector<Document> matched_documents(document_to_relevance.size());
     std::transform(std::execution::par, document_to_relevance.begin(), document_to_relevance.end(), matched_documents.begin(), [this](const auto &map)

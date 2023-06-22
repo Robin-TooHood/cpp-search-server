@@ -45,6 +45,11 @@ public:
         return {key, bucket};
     }
 
+    std::size_t erase(const Key &key)
+    {
+        return buckets_[static_cast<int>(key) % buckets_.size()].map.erase(key);
+    }
+
     std::map<Key, Value> BuildOrdinaryMap()
     {
         std::map<Key, Value> result;

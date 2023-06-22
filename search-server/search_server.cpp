@@ -114,14 +114,16 @@ map<string_view, double> SearchServer::GetWordFrequencies(int document_id) const
     return id_to_word_freqs_.at(document_id);
 }
 
-tuple<vector<string_view>, DocumentStatus> SearchServer::MatchDocument(string_view raw_query,
-                                                                       int document_id) const
+using MatchTuple = tuple<vector<string_view>, DocumentStatus>;
+
+MatchTuple SearchServer::MatchDocument(string_view raw_query,
+                                       int document_id) const
 {
     return MatchDocument(execution::seq, raw_query, document_id);
 }
 
-tuple<vector<string_view>, DocumentStatus> SearchServer::MatchDocument(const execution::sequenced_policy &, string_view raw_query,
-                                                                       int document_id) const
+MatchTuple SearchServer::MatchDocument(const execution::sequenced_policy &, string_view raw_query,
+                                       int document_id) const
 {
     if ((document_id < 0) || (documents_.count(document_id) <= 0))
     {
@@ -134,7 +136,7 @@ tuple<vector<string_view>, DocumentStatus> SearchServer::MatchDocument(const exe
 
     vector<string_view> matched_words;
 
-    const auto query = ParseQuery(raw_query);
+    const auto query = ParseQuery(raw_query, true);
 
     for (string_view word : query.minus_words)
     {
@@ -162,8 +164,8 @@ tuple<vector<string_view>, DocumentStatus> SearchServer::MatchDocument(const exe
     return {matched_words, documents_.at(document_id).status};
 }
 
-tuple<vector<string_view>, DocumentStatus> SearchServer::MatchDocument(const execution::parallel_policy &, string_view raw_query,
-                                                                       int document_id) const
+MatchTuple SearchServer::MatchDocument(const execution::parallel_policy &, string_view raw_query,
+                                       int document_id) const
 {
     if ((document_id < 0) || (documents_.count(document_id) <= 0))
     {
@@ -174,7 +176,7 @@ tuple<vector<string_view>, DocumentStatus> SearchServer::MatchDocument(const exe
         throw invalid_argument("Invalid query");
     }
 
-    const auto query = ParseQuery(raw_query);
+    const auto query = ParseQuery(raw_query, false);
 
     if (any_of(execution::par, query.minus_words.begin(), query.minus_words.end(), [this, &document_id](string_view word)
                { return (word_to_document_freqs_.count(word) != 0 && word_to_document_freqs_.at(word).count(document_id)); }))
@@ -225,11 +227,7 @@ vector<string_view> SearchServer::SplitIntoWordsViewNoStop(string_view text) con
 
 int SearchServer::ComputeAverageRating(const vector<int> &ratings)
 {
-    int rating_sum = 0;
-    for (const int rating : ratings)
-    {
-        rating_sum += rating;
-    }
+    int rating_sum = accumulate(ratings.begin(), ratings.end(), 0);
     return rating_sum / static_cast<int>(ratings.size());
 }
 
@@ -254,7 +252,7 @@ SearchServer::QueryWord SearchServer::ParseQueryWord(string_view text) const
     return {word, is_minus, IsStopWord(word)};
 }
 
-SearchServer::Query SearchServer::ParseQuery(string_view text) const
+SearchServer::Query SearchServer::ParseQuery(string_view text, bool sort_request) const
 {
     SearchServer::Query result;
     vector<string_view> words = SplitIntoWordsView(text);
@@ -274,13 +272,16 @@ SearchServer::Query SearchServer::ParseQuery(string_view text) const
             }
         }
     }
-    sort(result.minus_words.begin(), result.minus_words.end());
-    auto last_unique = unique(result.minus_words.begin(), result.minus_words.end());
-    result.minus_words.erase(last_unique, result.minus_words.end());
+    if (sort_request)
+    {
+        sort(result.minus_words.begin(), result.minus_words.end());
+        auto last_unique = unique(result.minus_words.begin(), result.minus_words.end());
+        result.minus_words.erase(last_unique, result.minus_words.end());
 
-    sort(result.plus_words.begin(), result.plus_words.end());
-    last_unique = unique(result.plus_words.begin(), result.plus_words.end());
-    result.plus_words.erase(last_unique, result.plus_words.end());
+        sort(result.plus_words.begin(), result.plus_words.end());
+        last_unique = unique(result.plus_words.begin(), result.plus_words.end());
+        result.plus_words.erase(last_unique, result.plus_words.end());
+    }
 
     return result;
 }
