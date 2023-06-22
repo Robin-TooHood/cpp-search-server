@@ -121,6 +121,8 @@ private:
         std::vector<std::string_view> minus_words;
     };
 
+    void SortUnique(std::vector<std::string_view> &vector) const;
+
     Query ParseQuery(std::string_view text, bool sort_request) const;
 
     double ComputeWordInverseDocumentFreq(std::string_view word) const;
@@ -161,13 +163,8 @@ std::vector<Document> SearchServer::FindTopDocuments(const ExecutionPolicy &poli
 
     if (!sort_request)
     {
-        sort(query.minus_words.begin(), query.minus_words.end());
-        auto last_unique = unique(query.minus_words.begin(), query.minus_words.end());
-        query.minus_words.erase(last_unique, query.minus_words.end());
-
-        sort(query.plus_words.begin(), query.plus_words.end());
-        last_unique = unique(query.plus_words.begin(), query.plus_words.end());
-        query.plus_words.erase(last_unique, query.plus_words.end());
+        SortUnique(query.minus_words);
+        SortUnique(query.plus_words);
     }
 
     auto matched_documents = FindAllDocuments(policy, query, document_predicate);

@@ -252,6 +252,13 @@ SearchServer::QueryWord SearchServer::ParseQueryWord(string_view text) const
     return {word, is_minus, IsStopWord(word)};
 }
 
+void SearchServer::SortUnique(vector<string_view> &vector) const
+{
+    sort(execution::par, vector.begin(), vector.end());
+    auto last_unique = unique(execution::par, vector.begin(), vector.end());
+    vector.erase(last_unique, vector.end());
+}
+
 SearchServer::Query SearchServer::ParseQuery(string_view text, bool sort_request) const
 {
     SearchServer::Query result;
@@ -274,13 +281,8 @@ SearchServer::Query SearchServer::ParseQuery(string_view text, bool sort_request
     }
     if (sort_request)
     {
-        sort(result.minus_words.begin(), result.minus_words.end());
-        auto last_unique = unique(result.minus_words.begin(), result.minus_words.end());
-        result.minus_words.erase(last_unique, result.minus_words.end());
-
-        sort(result.plus_words.begin(), result.plus_words.end());
-        last_unique = unique(result.plus_words.begin(), result.plus_words.end());
-        result.plus_words.erase(last_unique, result.plus_words.end());
+        SortUnique(result.minus_words);
+        SortUnique(result.plus_words);
     }
 
     return result;
