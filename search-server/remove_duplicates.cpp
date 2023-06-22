@@ -1,6 +1,6 @@
 #include "remove_duplicates.h"
 
-#include <string>
+#include <string_view>
 #include <map>
 #include <algorithm>
 
@@ -8,14 +8,14 @@ using namespace std;
 
 void RemoveDuplicates(SearchServer &search_server)
 {
-    map<set<string>, int> words_to_id;
+    map<set<string_view>, int> words_to_id;
     set<int> duplicate_ids;
     set<int> ids;
     for (const int id : search_server)
     {
-        map<string, double> word_freqs = search_server.GetWordFrequencies(id);
-        set<string> words_to_compare;
-        for (const auto &word : word_freqs)
+        map<string_view, double> word_freqs = search_server.GetWordFrequencies(id);
+        set<string_view> words_to_compare;
+        for (auto word : word_freqs)
         {
             words_to_compare.insert(word.first);
         }

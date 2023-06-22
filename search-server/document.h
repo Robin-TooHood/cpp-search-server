@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <vector>
-#include <string>
+#include <string_view>
 
 struct Document
 {
@@ -28,4 +28,4 @@ std::ostream &operator<<(std::ostream &out, const Document &document);
 
 void PrintDocument(const Document &document);
 
-void PrintMatchDocumentResult(int document_id, const std::vector<std::string> &words, DocumentStatus status);
+void PrintMatchDocumentResult(int document_id, std::vector<std::string_view> words, DocumentStatus status);
